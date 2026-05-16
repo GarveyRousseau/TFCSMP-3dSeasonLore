@@ -43,3 +43,9 @@ Permission: `tfcsmp.lore.admin` (по умолчанию op).
 ## Resource pack
 
 Смотри `docs/resource-pack-plan.txt` для точных имён файлов resource pack: искажённая луна, фиолетовый снег, OGG-звуки, font glyphs, модели артефактов и hosting/SHA-1 checklist.
+
+## Идеи и задачи
+
+ВСЕ ИДЕИ ПИШЕМ В ФАЙЛЕ `additional/IDEA-номер` с соответствующим номером и дублируем в чате с `#IDEA`
+
+ВСЕ БУДУЩИЕ ЗАДАЧИ ПИШЕМ В ФАЙЛЕ `additional/TODO-номер` с соответствующим номером и дублируем в чате с `#TODO`
