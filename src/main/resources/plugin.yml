@@ -1,0 +1,16 @@
+name: TFCSMPSeasonLore
+version: ${version}
+main: com.tfcsmp.seasonlore.SeasonLorePlugin
+api-version: '1.21'
+author: TFCSMP
+description: Русскоязычный Void-движок лора 3 сезона TFCSMP для 1.21.11.
+commands:
+  function:
+    description: Команда управления и debug-меню лора TFCSMP.
+    usage: /function <start|stop|phase|status|zone|debug|reload> [event] [player]
+    permission: tfcsmp.lore.admin
+    aliases: [voidlore, tfclore]
+permissions:
+  tfcsmp.lore.admin:
+    description: Позволяет персоналу запускать события лора и debug-меню.
+    default: op
