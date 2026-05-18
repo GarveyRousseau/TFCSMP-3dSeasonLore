@@ -70,6 +70,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
     private final Map<UUID, BossBar> debugBars = new HashMap<>();
     private final Set<UUID> debugViewers = new HashSet<>();
     private final List<VoidZone> voidZones = new ArrayList<>();
+    private FactionManager factionManager;
     private BossBar skyCrackBar;
     private BukkitTask automationTask;
     private BukkitTask debugTask;
@@ -83,6 +84,10 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         saveDefaultConfig();
         phase = getConfig().getInt("lore.phase", 0);
         loadVoidZones();
+        factionManager = new FactionManager(this);
+        factionManager.setVoidZoneLookup(location -> zoneAt(location) != null);
+        factionManager.load();
+        factionManager.start();
         getServer().getPluginManager().registerEvents(this, this);
         getCommand("function").setExecutor(this);
         getCommand("function").setTabCompleter(this);
@@ -97,6 +102,10 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         stopDebugForAll();
         if (debugTask != null) {
             debugTask.cancel();
+        }
+        if (factionManager != null) {
+            factionManager.save();
+            factionManager.stop();
         }
         saveRuntimeState();
     }
@@ -242,6 +251,32 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
                 }
                 return true;
             }
+            case "faction" -> {
+                if (!(sender instanceof Player player) && args.length < 3) {
+                    sender.sendMessage(ChatColor.RED + "Консоль должна указать игрока: /" + label + " faction <сторона> <игрок>");
+                    return true;
+                }
+                if (args.length < 2) {
+                    Player player = (Player) sender;
+                    sender.sendMessage(ChatColor.DARK_PURPLE + "Текущий путь: " + factionManager.faction(player).displayName());
+                    sender.sendMessage(ChatColor.GRAY + "Варианты: sealers, entropy, loners, none");
+                    return true;
+                }
+                try {
+                    Faction faction = Faction.parse(args[1]);
+                    Player target = args.length >= 3 ? Bukkit.getPlayerExact(args[2]) : (Player) sender;
+                    if (target == null) {
+                        sender.sendMessage(ChatColor.RED + "Игрок не найден.");
+                        return true;
+                    }
+                    factionManager.setFaction(target, faction);
+                    target.getInventory().addItem(factionBook(faction));
+                    sender.sendMessage(ChatColor.DARK_PURPLE + "Путь игрока " + target.getName() + ": " + faction.displayName());
+                } catch (IllegalArgumentException exception) {
+                    sender.sendMessage(ChatColor.RED + exception.getMessage());
+                }
+                return true;
+            }
             case "status" -> {
                 sender.sendMessage(ChatColor.DARK_PURPLE + "Фаза: " + phaseName());
                 sender.sendMessage(ChatColor.DARK_PURPLE + "Следующая проверка автоматики: " + secondsUntilNextAutomation() + " сек.");
@@ -268,7 +303,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(args[0], List.of("start", "stop", "phase", "status", "zone", "debug", "reload", "help"));
+            return filter(args[0], List.of("start", "stop", "phase", "status", "zone", "debug", "faction", "reload", "help"));
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("start") || args[0].equalsIgnoreCase("stop"))) {
             List<String> events = Arrays.stream(LoreEvent.values()).map(event -> event.name().toLowerCase(Locale.ROOT)).toList();
@@ -276,6 +311,12 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
             return filter(args[1], List.of("on", "off"));
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("faction")) {
+            return filter(args[1], List.of("sealers", "entropy", "loners", "none"));
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("faction")) {
+            return filter(args[2], Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("start")) {
             return filter(args[2], Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
@@ -293,6 +334,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
             case ANIMALS_WATCHING -> eventAnimalsWatching(anchor);
             case SHADOW_MARK -> eventShadowMark(anchor);
             case FAKE_DEATH_MESSAGE -> eventFakeDeathMessage(anchor);
+            case LOST_MINER_NOTE -> eventLostMinerNote(anchor);
             case VOID_ZONE -> eventVoidZone(anchor);
             case SINK -> eventSink(anchor);
             case ECHO -> eventEcho(anchor);
@@ -302,10 +344,12 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
             case INVENTORY_ECHO -> eventInventoryEcho(anchor);
             case LAB -> eventLab(anchor);
             case WHISPER -> eventWhisper(anchor);
+            case MEMORY_FRAGMENT -> eventMemoryFragment(anchor);
             case COMPASS_BETRAYAL -> eventCompassBetrayal(anchor);
             case NIGHTMARE -> eventNightmare(anchor);
             case BLACK_RAIN -> eventBlackRain(anchor.getWorld());
             case SILENCE -> eventSilence(anchor.getWorld());
+            case FACTION_INVITATION -> eventFactionInvitation(anchor);
             case RITUAL_MARK -> eventRitualMark(anchor);
             case MOB_POSSESSION -> eventMobPossession(anchor);
             case CHUNK_ROT -> eventChunkRot(anchor);
@@ -409,6 +453,12 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         Bukkit.getScheduler().runTaskLater(this, () -> player.sendMessage(ChatColor.DARK_PURPLE + "Но ты всё ещё здесь. Значит, сообщение было не для них."), 30L);
     }
 
+    private void eventLostMinerNote(Player player) {
+        player.getInventory().addItem(voidBook(LoreTexts.LOST_MINER_NOTE));
+        player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 0.7f, 0.55f);
+        player.sendMessage(ChatColor.DARK_GRAY + "Вещи в инвентаре пахнут мокрым камнем.");
+    }
+
     private void eventVoidZone(Player player) {
         addVoidZone(player.getLocation(), getConfig().getInt("void-zones.ambient-radius", 48));
         player.getWorld().spawnParticle(Particle.ASH, player.getLocation(), 250, 8, 2, 8, 0.02);
@@ -460,7 +510,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         }
         origin.clone().add(2, 1, 2).getBlock().setType(Material.CHEST);
         Chest chest = (Chest) origin.clone().add(2, 1, 2).getBlock().getState();
-        chest.getInventory().addItem(voidBook("Дом, который ты не строил", List.of("Оно сначала скопировало углы.", "Потом выучило твоё имя.", "Не спи здесь.")));
+        chest.getInventory().addItem(voidBook(LoreTexts.COPY_HOUSE));
         chest.update();
         Block signBlock = origin.clone().add(2, 1, 0).getBlock();
         signBlock.setType(Material.OAK_SIGN);
@@ -514,7 +564,8 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         origin.clone().add(1, 1, 1).getBlock().setType(Material.BARREL);
         origin.clone().add(5, 1, 5).getBlock().setType(Material.CHEST);
         Chest notesChest = (Chest) origin.clone().add(5, 1, 5).getBlock().getState();
-        notesChest.getInventory().addItem(voidBook("Запись лаборатории 03", List.of("НЕ КОПАТЬ НИЖЕ.", "Чёрное пространство за бедроком не пустое.", "Координаты помечены: " + origin.getBlockX() + " " + origin.getBlockY() + " " + origin.getBlockZ())));
+        notesChest.getInventory().addItem(voidBook(LoreTexts.LAB_NOTE));
+        notesChest.getInventory().addItem(voidBook("Координаты заражения", List.of("Точка сигнала: " + origin.getBlockX() + " " + origin.getBlockY() + " " + origin.getBlockZ(), "Если карта почернела, значит зона уже ушла.")));
         notesChest.update();
         addVoidZone(portal, 32);
         broadcastSubtle("§8Старый лабораторный сигнал мигнул и умер.");
@@ -527,8 +578,14 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         }
         player.sendMessage(messages.get(random.nextInt(messages.size())));
         if (random.nextBoolean()) {
-            player.getInventory().addItem(voidBook("Нечитаемый шёпот", List.of("Буквы двигаются, когда никто не смотрит.", "Избранный не значит спасённый.")));
+            player.getInventory().addItem(voidBook(LoreTexts.WHISPER));
         }
+    }
+
+    private void eventMemoryFragment(Player player) {
+        player.getInventory().addItem(voidBook(LoreTexts.MEMORY_FRAGMENT));
+        player.sendTitle("§5ЭТО НЕ ТВОЯ ПАМЯТЬ", "§7но она помнит тебя", 10, 70, 20);
+        player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 0.4f);
     }
 
     private void eventCompassBetrayal(Player player) {
@@ -578,6 +635,13 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
             activeTasks.remove(LoreEvent.SILENCE);
         }, 20L * 300);
         activeTasks.put(LoreEvent.SILENCE, task);
+    }
+
+    private void eventFactionInvitation(Player player) {
+        player.getInventory().addItem(voidBook(LoreTexts.THREE_PATHS));
+        player.sendTitle("§5ТРИ ПУТИ", "§7Печатники. Энтропия. Одиночки.", 10, 80, 30);
+        player.sendMessage(ChatColor.DARK_PURPLE + "Выбор стороны даст силу и цену. /function faction <sealers|entropy|loners|none>");
+        player.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1.0f, 0.65f);
     }
 
     private void eventRitualMark(Player player) {
@@ -660,7 +724,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
 
     private void eventFinalWhisper(Player player) {
         player.sendTitle("§5ПОСЛЕДНИЙ ВЫБОР", "§7Закрыть трещину или открыть её полностью?", 20, 100, 40);
-        player.getInventory().addItem(voidBook("Последний шёпот", List.of("Печать требует пустоты внутри мира.", "Энтропия требует мира внутри пустоты.", "Выберите, пока небо ещё держится.")));
+        player.getInventory().addItem(voidBook(LoreTexts.FINAL_WHISPER));
         player.playSound(player.getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1.2f, 0.4f);
     }
 
@@ -713,6 +777,10 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         }
     }
 
+    private ItemStack voidBook(LoreTexts.BookText bookText) {
+        return voidBook(bookText.title(), bookText.pages());
+    }
+
     private ItemStack voidBook(String title, List<String> pages) {
         ItemStack item = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta meta = (BookMeta) item.getItemMeta();
@@ -721,6 +789,15 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         meta.setPages(pages);
         item.setItemMeta(meta);
         return item;
+    }
+
+    private ItemStack factionBook(Faction faction) {
+        return switch (faction) {
+            case SEALERS -> voidBook(LoreTexts.SEALER_OATH);
+            case ENTROPY -> voidBook(LoreTexts.ENTROPY_SERMON);
+            case LONERS -> voidBook(LoreTexts.LONER_MANIFESTO);
+            case NONE -> voidBook(LoreTexts.THREE_PATHS);
+        };
     }
 
     private ItemStack namedItem(Material material, String name, List<String> lore) {
@@ -808,18 +885,13 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         }
         LoreEvent event = randomEventForPhase();
         triggerEvent(event, target);
+        for (LoreEvent childEvent : LoreEventCatalog.rollChildEvents(phase)) {
+            Bukkit.getScheduler().runTaskLater(this, () -> triggerEvent(childEvent, target), 20L + random.nextInt(80));
+        }
     }
 
     private LoreEvent randomEventForPhase() {
-        List<LoreEvent> possible = switch (phase) {
-            case 0 -> List.of(LoreEvent.WRONG_SOUNDS, LoreEvent.GHOST_JOIN, LoreEvent.SHADOW_MARK);
-            case 1 -> List.of(LoreEvent.GHOST_JOIN, LoreEvent.MISSING_BLOCKS, LoreEvent.WRONG_SOUNDS, LoreEvent.ANIMALS_WATCHING, LoreEvent.SHADOW_MARK, LoreEvent.FAKE_DEATH_MESSAGE);
-            case 2 -> List.of(LoreEvent.VOID_ZONE, LoreEvent.SINK, LoreEvent.ECHO, LoreEvent.COPY, LoreEvent.VOID_PULL, LoreEvent.MIRROR_STEP, LoreEvent.INVENTORY_ECHO);
-            case 3 -> List.of(LoreEvent.LAB, LoreEvent.WHISPER, LoreEvent.COMPASS_BETRAYAL, LoreEvent.NIGHTMARE, LoreEvent.ECHO, LoreEvent.INVENTORY_ECHO);
-            case 4 -> List.of(LoreEvent.BLACK_RAIN, LoreEvent.SILENCE, LoreEvent.RITUAL_MARK, LoreEvent.MOB_POSSESSION, LoreEvent.VOID_PULL, LoreEvent.SHADOW_MARK);
-            default -> List.of(LoreEvent.CHUNK_ROT, LoreEvent.SKY_CRACK, LoreEvent.GRAVITY_FAILURE, LoreEvent.FINAL_WHISPER, LoreEvent.WHISPER, LoreEvent.MOB_POSSESSION);
-        };
-        return possible.get(random.nextInt(possible.size()));
+        return LoreEventCatalog.chooseRootEvent(phase);
     }
 
     private void stopEvent(LoreEvent event) {
@@ -902,7 +974,8 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
             objective.getScore("§7Шанс: §f" + Math.round(getConfig().getDouble("automation.event-chance-by-phase." + phase, 0.0) * 100) + "%").setScore(6);
             objective.getScore("§7Перелом: §e" + shortText(nextBreakingPoint(), 18)).setScore(5);
             objective.getScore("§7Зон: §f" + voidZones.size()).setScore(4);
-            objective.getScore("§7Активно: §f" + activeTasks.size()).setScore(3);
+            objective.getScore("§7Активно: §f" + activeTasks.size()).setScore(4);
+            objective.getScore("§7Путь: §d" + shortText(factionManager.faction(player).displayName(), 16)).setScore(3);
             objective.getScore("§7Последнее:").setScore(2);
             objective.getScore("§d" + shortText(lastAutomationEvent, 24)).setScore(1);
             player.setScoreboard(board);
@@ -991,6 +1064,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         sender.sendMessage(ChatColor.GRAY + "/" + label + " phase <0-5>");
         sender.sendMessage(ChatColor.GRAY + "/" + label + " zone [радиус]");
         sender.sendMessage(ChatColor.GRAY + "/" + label + " debug [on|off]");
+        sender.sendMessage(ChatColor.GRAY + "/" + label + " faction <sealers|entropy|loners|none> [игрок]");
         sender.sendMessage(ChatColor.GRAY + "/" + label + " status | reload");
     }
 
