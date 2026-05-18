@@ -1,1 +1,8 @@
-Добавляем задачи именно так
+Fractions - Harvey
+
+Fractions - players cant really chose their fraction via
+command and they basicly doesnt know if they got the fraction 
+so no visible lore for players about their fraction chooses pros and cons
+also fractions for now should be given by an admin only and player 
+pros and cons should show up slowly (for now with time releative to some events that are good for a fraction 
+( admin should have a func to force a stage of fraction inheritance like to set level 1 with minor pros and cons))
