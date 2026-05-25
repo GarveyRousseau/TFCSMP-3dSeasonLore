@@ -51,3 +51,15 @@ Permission: `tfcsmp.lore.admin` (по умолчанию op).
 ## Void Zone structures
 
 При создании новых Void Zone плагин процедурно генерирует простые структуры: частые `spike` (очень маленький/маленький/средний/большой) и редкие `tentacle` (маленький/средний/большой). Сейчас они ставятся блоками, позже их можно заменить на structure-file paste систему через те же точки вызова.
+
+
+## GitHub Actions artifact build
+
+В репозитории добавлен workflow `.github/workflows/gradle.yml`.
+Он автоматически собирает плагин на `push`, `pull_request` и вручную через `workflow_dispatch`,
+после чего загружает jar как GitHub Artifact.
+
+Где взять артефакт:
+1. Открой GitHub -> Actions -> **Build Plugin Artifact**.
+2. Выбери нужный run.
+3. Внизу страницы скачай Artifact `TFCSMP-3dSeasonLore-<commit_sha>`.
