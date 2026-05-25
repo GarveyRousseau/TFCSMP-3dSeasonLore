@@ -846,8 +846,129 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         return item;
     }
 
+    private void generateVoidStructures(VoidZone zone) {
+        if (!getConfig().getBoolean("void-structures.enabled", true)) {
+            return;
+        }
+        Location center = zone.center();
+        if (center == null || center.getWorld() == null) {
+            return;
+        }
+        World world = center.getWorld();
+        int attempts = Math.max(1, getConfig().getInt("void-structures.attempts-per-zone", 18));
+        double spikeChance = getConfig().getDouble("void-structures.spike.chance", 0.78);
+        Material primary = Material.matchMaterial(getConfig().getString("void-structures.material-primary", "CRYING_OBSIDIAN"));
+        Material secondary = Material.matchMaterial(getConfig().getString("void-structures.material-secondary", "BLACK_CONCRETE"));
+        if (primary == null) {
+            primary = Material.CRYING_OBSIDIAN;
+        }
+        if (secondary == null) {
+            secondary = Material.BLACK_CONCRETE;
+        }
+
+        for (int i = 0; i < attempts; i++) {
+            int x = center.getBlockX() + random.nextInt(zone.radius() * 2 + 1) - zone.radius();
+            int z = center.getBlockZ() + random.nextInt(zone.radius() * 2 + 1) - zone.radius();
+            if (random.nextDouble() <= spikeChance) {
+                placeSpike(world, x, z, randomSpikeHeight(), primary, secondary);
+            } else {
+                placeTentacle(world, x, z, randomTentacleLength(), primary, secondary);
+            }
+        }
+    }
+
+    private int randomSpikeHeight() {
+        int roll = random.nextInt(100);
+        if (roll < 18) {
+            return randomRange("void-structures.spike.height.large", 11, 16);
+        }
+        if (roll < 45) {
+            return randomRange("void-structures.spike.height.medium", 7, 11);
+        }
+        if (roll < 78) {
+            return randomRange("void-structures.spike.height.small", 4, 7);
+        }
+        return randomRange("void-structures.spike.height.very-small", 2, 4);
+    }
+
+    private int randomTentacleLength() {
+        int roll = random.nextInt(100);
+        if (roll < 22) {
+            return randomRange("void-structures.tentacle.length.large", 13, 18);
+        }
+        if (roll < 56) {
+            return randomRange("void-structures.tentacle.length.medium", 8, 13);
+        }
+        return randomRange("void-structures.tentacle.length.small", 5, 8);
+    }
+
+    private int randomRange(String path, int fallbackMin, int fallbackMax) {
+        List<Integer> values = getConfig().getIntegerList(path);
+        int min = fallbackMin;
+        int max = fallbackMax;
+        if (values.size() >= 2) {
+            min = values.getFirst();
+            max = values.get(1);
+        }
+        if (max < min) {
+            int temp = min;
+            min = max;
+            max = temp;
+        }
+        return min + random.nextInt(max - min + 1);
+    }
+
+    private void placeSpike(World world, int x, int z, int height, Material primary, Material secondary) {
+        int y = world.getHighestBlockYAt(x, z);
+        int radius = height >= 11 ? 2 : (height >= 7 ? 1 : 0);
+        for (int dy = 0; dy < height; dy++) {
+            int layerRadius = Math.max(0, radius - (dy / Math.max(1, height / 4)));
+            for (int ox = -layerRadius; ox <= layerRadius; ox++) {
+                for (int oz = -layerRadius; oz <= layerRadius; oz++) {
+                    if (Math.abs(ox) + Math.abs(oz) > layerRadius + 1) {
+                        continue;
+                    }
+                    Material material = (dy == height - 1 || random.nextDouble() < 0.35) ? primary : secondary;
+                    world.getBlockAt(x + ox, y + dy, z + oz).setType(material, false);
+                }
+            }
+        }
+    }
+
+    private void placeTentacle(World world, int x, int z, int length, Material primary, Material secondary) {
+        int y = world.getHighestBlockYAt(x, z) + 1;
+        int dx = random.nextInt(3) - 1;
+        int dz = random.nextInt(3) - 1;
+        if (dx == 0 && dz == 0) {
+            dx = 1;
+        }
+        int cx = x;
+        int cz = z;
+        for (int i = 0; i < length; i++) {
+            int up = i / 4;
+            Material material = (i % 3 == 0) ? primary : secondary;
+            world.getBlockAt(cx, y + up, cz).setType(material, false);
+            if (random.nextDouble() < 0.4) {
+                world.getBlockAt(cx, y + up + 1, cz).setType(primary, false);
+            }
+            if (random.nextDouble() < 0.45) {
+                cx += dx;
+                cz += dz;
+            }
+            if (random.nextDouble() < 0.22) {
+                dx = random.nextInt(3) - 1;
+                dz = random.nextInt(3) - 1;
+                if (dx == 0 && dz == 0) {
+                    dz = 1;
+                }
+            }
+        }
+    }
+
     private void addVoidZone(Location location, int radius) {
-        voidZones.add(new VoidZone(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ(), radius));
+        VoidZone zone = new VoidZone(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ(), radius);
+        voidZones.add(zone);
+        generateVoidStructures(zone);
         saveRuntimeState();
     }
 

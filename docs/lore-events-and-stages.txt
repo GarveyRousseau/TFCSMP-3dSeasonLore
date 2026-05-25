@@ -1,3 +1,11 @@
+
+Генерация структур в Зонах Пустоты (Todo-2)
+- При создании каждой новой Зоны Пустоты плагин процедурно ставит простые block-структуры.
+- Spike (частые): very-small, small, medium, large.
+- Tentacle (редкие): small, medium, large.
+- Сейчас это простая block-геометрия (CRYING_OBSIDIAN/BLACK_CONCRETE по конфигу), позже можно заменить на paste structure file.
+- Настройки находятся в config.yml -> void-structures.*
+
 TFCSMP Season 3 — стадии, root-события, второстепенные события и стороны
 Язык лора: русский. Void/Пустота не объясняется игрокам напрямую до поздних стадий.
 

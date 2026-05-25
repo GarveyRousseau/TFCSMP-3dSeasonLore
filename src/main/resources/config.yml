@@ -28,6 +28,26 @@ void-zones:
   damage-below-y: -54
   darkness-seconds: 4
 
+
+void-structures:
+  enabled: true
+  attempts-per-zone: 18
+  material-primary: "CRYING_OBSIDIAN"
+  material-secondary: "BLACK_CONCRETE"
+  spike:
+    chance: 0.78
+    height:
+      very-small: [2, 4]
+      small: [4, 7]
+      medium: [7, 11]
+      large: [11, 16]
+  tentacle:
+    chance: 0.22
+    length:
+      small: [5, 8]
+      medium: [8, 13]
+      large: [13, 18]
+
 breach:
   min-y: -58
   auto-trigger-on-bedrock-break: true

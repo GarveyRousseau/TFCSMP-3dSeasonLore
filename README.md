@@ -46,3 +46,8 @@ Permission: `tfcsmp.lore.admin` (по умолчанию op).
 ## Resource pack
 
 Смотри `docs/resource-pack-plan.txt` для точных имён файлов resource pack: искажённая луна, фиолетовый снег, OGG-звуки, font glyphs, модели артефактов и hosting/SHA-1 checklist.
+
+
+## Void Zone structures
+
+При создании новых Void Zone плагин процедурно генерирует простые структуры: частые `spike` (очень маленький/маленький/средний/большой) и редкие `tentacle` (маленький/средний/большой). Сейчас они ставятся блоками, позже их можно заменить на structure-file paste систему через те же точки вызова.
