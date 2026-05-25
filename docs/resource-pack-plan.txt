@@ -1,0 +1,106 @@
+План optional resource pack для TFCSMP Season 3
+Сервер: Minecraft / Paper 1.21.11
+Ключи конфига плагина: lore.resource-pack-url и lore.resource-pack-sha1
+
+Плагин работает без resource pack, но pack усилит атмосферу: искажённая луна, фиолетовый снег, шёпоты, звук Разлома и финальные эффекты. Загрузите zip на прямую HTTPS-ссылку, вставьте URL в config.yml, затем посчитайте SHA-1 zip-файла и вставьте его в lore.resource-pack-sha1.
+
+1) Метаданные pack
+Файл в корне zip:
+pack.mcmeta
+
+Пример:
+{
+  "pack": {
+    "pack_format": 65,
+    "description": "TFCSMP Season 3: Искажённая Луна / Пустота"
+  }
+}
+
+Важно: pack_format может измениться у точного клиента 1.21.11. Перед релизом проверьте актуальный pack_format и обновите число.
+
+2) Искажённая луна
+Файл:
+assets/minecraft/textures/environment/moon_phases.png
+
+Рекомендации:
+- Не меняйте размер и сетку vanilla moon phases.
+- Добавьте тонкие фиолетовые трещины на каждую фазу.
+- Добавьте чёрное «пятно Пустоты», которое видно сильнее на полной луне.
+- Не делайте эффект слишком очевидным в первые дни: игроки должны сомневаться, баг это или лор.
+
+3) Фиолетовый снег / финал Entropy
+Файл:
+assets/minecraft/textures/particle/tfc_void_snow.png
+
+Рекомендации:
+- 8x8 или 16x16 PNG с прозрачным фоном.
+- Мягкая фиолетово-белая снежинка с одной чёрной точкой в центре.
+- Текущий плагин использует vanilla PORTAL/ASH/DUST particles, поэтому файл нужен для будущего datapack/client-side эффекта или кастомной доработки.
+
+4) Искажённые звуки
+Файлы OGG:
+assets/tfcsmp/sounds/void/heartbeat.ogg
+assets/tfcsmp/sounds/void/breach.ogg
+assets/tfcsmp/sounds/void/distorted_noise.ogg
+assets/tfcsmp/sounds/void/whisper_01.ogg
+assets/tfcsmp/sounds/void/whisper_02.ogg
+assets/tfcsmp/sounds/void/silence_end.ogg
+assets/tfcsmp/sounds/void/sky_crack.ogg
+
+Звуковой стиль:
+- heartbeat.ogg: низкий медленный пульс, почти как сердце Warden.
+- breach.ogg: глубокий рвущийся звук + короткий sub-bass удар.
+- distorted_noise.ogg: перевёрнутый thunder + static для конца события «Тишина».
+- whisper_01.ogg и whisper_02.ogg: очень тихая, нечитаемая речь без ясных слов.
+- silence_end.ogg: резкий distorted sting.
+- sky_crack.ogg: длинный воздушный звук стекла/портала.
+
+Регистрация звуков:
+assets/tfcsmp/sounds.json
+
+Пример sounds.json:
+{
+  "void.heartbeat": { "sounds": ["tfcsmp:void/heartbeat"] },
+  "void.breach": { "sounds": ["tfcsmp:void/breach"] },
+  "void.distorted_noise": { "sounds": ["tfcsmp:void/distorted_noise"] },
+  "void.whisper_01": { "sounds": ["tfcsmp:void/whisper_01"] },
+  "void.whisper_02": { "sounds": ["tfcsmp:void/whisper_02"] },
+  "void.silence_end": { "sounds": ["tfcsmp:void/silence_end"] },
+  "void.sky_crack": { "sounds": ["tfcsmp:void/sky_crack"] }
+}
+
+Важно: текущая версия плагина специально играет vanilla sounds, чтобы сервер был playable без обязательного pack. Если хотите напрямую использовать кастомные звуки, замените Sound enum вызовы на строковые sound keys, например player.playSound(location, "tfcsmp:void.breach", volume, pitch).
+
+5) Кастомные glyphs для титров
+Файл provider:
+assets/minecraft/font/default.json
+
+Рекомендуемые текстуры glyph:
+assets/tfcsmp/textures/font/void_crack.png
+assets/tfcsmp/textures/font/void_dot.png
+
+Используйте private-use символы вроде \uE001 и \uE002 для трещин в будущих title cards. Не заменяйте обычные буквы.
+
+6) Модели артефактов
+Если позже добавите предметы для финального ритуала, используйте такие имена:
+assets/tfcsmp/models/item/seal_fragment.json
+assets/tfcsmp/models/item/entropy_eye.json
+assets/tfcsmp/models/item/lab_recorder.json
+assets/tfcsmp/models/item/broken_portal_key.json
+assets/tfcsmp/textures/item/seal_fragment.png
+assets/tfcsmp/textures/item/entropy_eye.png
+assets/tfcsmp/textures/item/lab_recorder.png
+assets/tfcsmp/textures/item/broken_portal_key.png
+
+Названия артефактов на русском:
+- Осколок Печати
+- Глаз Энтропии
+- Лабораторный Рекордер
+- Сломанный Ключ Портала
+
+7) Hosting checklist
+- Zip должен открываться так, чтобы pack.mcmeta был в корне, а не внутри лишней папки.
+- Ссылка должна быть прямой HTTPS-ссылкой на zip.
+- SHA-1: sha1sum TFCSMP-Season3-Pack.zip
+- Вставьте URL и SHA-1 в plugins/TFCSMPSeasonLore/config.yml.
+- Выполните /function reload или перезапустите сервер.

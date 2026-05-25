@@ -1,0 +1,70 @@
+# TFCSMP Season 3 Lore config. Server target: Paper 1.21.11.
+automation:
+  enabled: true
+  tick-period-seconds: 35
+  # Автоматика каждый тик периода бросает шанс текущей фазы.
+  # Если шанс сработал, запускается только root-событие из LoreEventCatalog.java.
+  # Второстепенные события роллятся отдельно после root-события по шансам стадии.
+  min-online-players: 1
+  event-chance-by-phase:
+    0: 0.02
+    1: 0.10
+    2: 0.15
+    3: 0.18
+    4: 0.22
+    5: 0.28
+
+lore:
+  phase: 0
+  resource-pack-url: ""
+  resource-pack-sha1: ""
+  pre-season-messages:
+    - "§7Мир нестабилен."
+    - "§7Не копайте слишком глубоко."
+    - "§7Что-то изменилось после прошлого сезона."
+
+void-zones:
+  ambient-radius: 48
+  damage-below-y: -54
+  darkness-seconds: 4
+
+
+void-structures:
+  enabled: true
+  attempts-per-zone: 18
+  material-primary: "CRYING_OBSIDIAN"
+  material-secondary: "BLACK_CONCRETE"
+  spike:
+    chance: 0.78
+    height:
+      very-small: [2, 4]
+      small: [4, 7]
+      medium: [7, 11]
+      large: [11, 16]
+  tentacle:
+    chance: 0.22
+    length:
+      small: [5, 8]
+      medium: [8, 13]
+      large: [13, 18]
+
+breach:
+  min-y: -58
+  auto-trigger-on-bedrock-break: true
+
+sink:
+  radius: 5
+  max-drop: 3
+  decay-chance: 0.33
+
+chunk-rot:
+  radius: 8
+  replace-chance: 0.18
+
+whispers:
+  messages:
+    - "§8[шёпот] §5Оно первым услышало кирку."
+    - "§8[шёпот] §5НЕ КОПАЙ НИЖЕ."
+    - "§8[шёпот] §5Твоя тень опаздывает."
+    - "§8[шёпот] §5Луна не там, где ты её оставил."
+    - "§8[шёпот] §5Запечатай это. Или освободи."
