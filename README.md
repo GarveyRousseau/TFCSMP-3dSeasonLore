@@ -27,7 +27,9 @@ Permission: `tfcsmp.lore.admin` (по умолчанию op).
 - `/function phase <0-5>` — посмотреть или поставить фазу лора.
 - `/function zone [radius]` — создать Зону Пустоты на текущей позиции.
 - `/function debug [on|off]` — включить/выключить debug-sidebar и bossbar стадии с таймером до следующей проверки автоматики.
-- `/function faction <sealers|entropy|loners|none> [player]` — выбрать путь: Печатники, Энтропия, Одиночки или отказ от стороны.
+- `/function faction assign <игрок> <sealers|entropy|loners|none> [уровень 1-3]` — только админ назначает сторону и стартовый уровень наследия.
+- `/function faction level <игрок> <0-3>` — форсировать уровень наследия (этап плюсов/минусов).
+- `/function faction info <игрок>` — показать сторону/уровень только админу.
 - `/function status` — вывести фазу, следующий перелом, таймер, зоны и активные события.
 - `/function reload` — перезагрузить конфиг.
 

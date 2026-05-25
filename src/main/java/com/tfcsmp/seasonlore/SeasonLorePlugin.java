@@ -252,30 +252,62 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
                 return true;
             }
             case "faction" -> {
-                if (!(sender instanceof Player player) && args.length < 3) {
-                    sender.sendMessage(ChatColor.RED + "Консоль должна указать игрока: /" + label + " faction <сторона> <игрок>");
-                    return true;
-                }
                 if (args.length < 2) {
-                    Player player = (Player) sender;
-                    sender.sendMessage(ChatColor.DARK_PURPLE + "Текущий путь: " + factionManager.faction(player).displayName());
-                    sender.sendMessage(ChatColor.GRAY + "Варианты: sealers, entropy, loners, none");
+                    sender.sendMessage(ChatColor.RED + "Использование: /" + label + " faction <assign|level|info> ...");
                     return true;
                 }
-                try {
-                    Faction faction = Faction.parse(args[1]);
-                    Player target = args.length >= 3 ? Bukkit.getPlayerExact(args[2]) : (Player) sender;
-                    if (target == null) {
-                        sender.sendMessage(ChatColor.RED + "Игрок не найден.");
+                String sub = args[1].toLowerCase(Locale.ROOT);
+                switch (sub) {
+                    case "assign" -> {
+                        if (args.length < 4) {
+                            sender.sendMessage(ChatColor.RED + "Использование: /" + label + " faction assign <игрок> <sealers|entropy|loners|none> [уровень1-3]");
+                            return true;
+                        }
+                        Player target = Bukkit.getPlayerExact(args[2]);
+                        if (target == null) {
+                            sender.sendMessage(ChatColor.RED + "Игрок не найден.");
+                            return true;
+                        }
+                        Faction faction = Faction.parse(args[3]);
+                        int level = args.length >= 5 ? Integer.parseInt(args[4]) : (faction == Faction.NONE ? 0 : 1);
+                        factionManager.assignFaction(target, faction, level);
+                        target.getInventory().addItem(factionBook(faction));
+                        sender.sendMessage(ChatColor.DARK_PURPLE + "Назначено: " + target.getName() + " -> " + faction.displayName() + " (L" + Math.max(0, Math.min(3, level)) + ")");
                         return true;
                     }
-                    factionManager.setFaction(target, faction);
-                    target.getInventory().addItem(factionBook(faction));
-                    sender.sendMessage(ChatColor.DARK_PURPLE + "Путь игрока " + target.getName() + ": " + faction.displayName());
-                } catch (IllegalArgumentException exception) {
-                    sender.sendMessage(ChatColor.RED + exception.getMessage());
+                    case "level" -> {
+                        if (args.length < 4) {
+                            sender.sendMessage(ChatColor.RED + "Использование: /" + label + " faction level <игрок> <0-3>");
+                            return true;
+                        }
+                        Player target = Bukkit.getPlayerExact(args[2]);
+                        if (target == null) {
+                            sender.sendMessage(ChatColor.RED + "Игрок не найден.");
+                            return true;
+                        }
+                        int level = Integer.parseInt(args[3]);
+                        factionManager.setLevel(target, level);
+                        sender.sendMessage(ChatColor.DARK_PURPLE + "Уровень наследия изменён для " + target.getName() + ".");
+                        return true;
+                    }
+                    case "info" -> {
+                        if (args.length < 3) {
+                            sender.sendMessage(ChatColor.RED + "Использование: /" + label + " faction info <игрок>");
+                            return true;
+                        }
+                        Player target = Bukkit.getPlayerExact(args[2]);
+                        if (target == null) {
+                            sender.sendMessage(ChatColor.RED + "Игрок не найден.");
+                            return true;
+                        }
+                        sender.sendMessage(ChatColor.DARK_PURPLE + "Сторона " + target.getName() + ": " + factionManager.adminSummary(target));
+                        return true;
+                    }
+                    default -> {
+                        sender.sendMessage(ChatColor.RED + "Подкоманды: assign, level, info");
+                        return true;
+                    }
                 }
-                return true;
             }
             case "status" -> {
                 sender.sendMessage(ChatColor.DARK_PURPLE + "Фаза: " + phaseName());
@@ -313,10 +345,15 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
             return filter(args[1], List.of("on", "off"));
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("faction")) {
-            return filter(args[1], List.of("sealers", "entropy", "loners", "none"));
+            return filter(args[1], List.of("assign", "level", "info"));
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("faction")) {
-            return filter(args[2], Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
+            if (args[1].equalsIgnoreCase("assign") || args[1].equalsIgnoreCase("level") || args[1].equalsIgnoreCase("info")) {
+                return filter(args[2], Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
+            }
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("faction") && args[1].equalsIgnoreCase("assign")) {
+            return filter(args[3], List.of("sealers", "entropy", "loners", "none"));
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("start")) {
             return filter(args[2], Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
@@ -640,7 +677,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
     private void eventFactionInvitation(Player player) {
         player.getInventory().addItem(voidBook(LoreTexts.THREE_PATHS));
         player.sendTitle("§5ТРИ ПУТИ", "§7Печатники. Энтропия. Одиночки.", 10, 80, 30);
-        player.sendMessage(ChatColor.DARK_PURPLE + "Выбор стороны даст силу и цену. /function faction <sealers|entropy|loners|none>");
+        player.sendMessage(ChatColor.DARK_PURPLE + "Выбор стороны даст силу и цену.");
         player.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1.0f, 0.65f);
     }
 
@@ -975,7 +1012,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
             objective.getScore("§7Перелом: §e" + shortText(nextBreakingPoint(), 18)).setScore(5);
             objective.getScore("§7Зон: §f" + voidZones.size()).setScore(4);
             objective.getScore("§7Активно: §f" + activeTasks.size()).setScore(4);
-            objective.getScore("§7Путь: §d" + shortText(factionManager.faction(player).displayName(), 16)).setScore(3);
+            objective.getScore("§7Путь: §d" + shortText(factionManager.state(player).faction().displayName() + " L" + factionManager.state(player).level(), 16)).setScore(3);
             objective.getScore("§7Последнее:").setScore(2);
             objective.getScore("§d" + shortText(lastAutomationEvent, 24)).setScore(1);
             player.setScoreboard(board);
@@ -1064,7 +1101,7 @@ public final class SeasonLorePlugin extends JavaPlugin implements Listener, Comm
         sender.sendMessage(ChatColor.GRAY + "/" + label + " phase <0-5>");
         sender.sendMessage(ChatColor.GRAY + "/" + label + " zone [радиус]");
         sender.sendMessage(ChatColor.GRAY + "/" + label + " debug [on|off]");
-        sender.sendMessage(ChatColor.GRAY + "/" + label + " faction <sealers|entropy|loners|none> [игрок]");
+        sender.sendMessage(ChatColor.GRAY + "/" + label + " faction assign <игрок> <сторона> [уровень] (только админ)");
         sender.sendMessage(ChatColor.GRAY + "/" + label + " status | reload");
     }
 
