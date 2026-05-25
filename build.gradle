@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.tfcsmp'
+version = '1.0.0'
+
+def targetJavaVersion = 21
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = targetJavaVersion
+}
+
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+}
+
+processResources {
+    filteringCharset = 'UTF-8'
+    inputs.property('version', version)
+    filesMatching('plugin.yml') {
+        expand(version: inputs.properties.version)
+    }
+}
